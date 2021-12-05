@@ -1,0 +1,10 @@
+﻿  ProyectoFinal.cpp
+C:\Users\Green\source\repos\ProyectoFinal\ProyectoFinal\ProyectoFinal.cpp(131,51): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
+C:\Users\Green\source\repos\ProyectoFinal\ProyectoFinal\ProyectoFinal.cpp(131,51): warning C4267: 'inicializando': conversión de 'size_t' a 'const int'; posible pérdida de datos
+C:\Users\Green\source\repos\ProyectoFinal\ProyectoFinal\ProyectoFinal.cpp(303,51): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
+C:\Users\Green\source\repos\ProyectoFinal\ProyectoFinal\ProyectoFinal.cpp(303,51): warning C4267: 'inicializando': conversión de 'size_t' a 'const int'; posible pérdida de datos
+C:\Users\Green\source\repos\ProyectoFinal\ProyectoFinal\ProyectoFinal.cpp(315,51): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
+C:\Users\Green\source\repos\ProyectoFinal\ProyectoFinal\ProyectoFinal.cpp(315,51): warning C4267: 'inicializando': conversión de 'size_t' a 'const int'; posible pérdida de datos
+C:\Users\Green\source\repos\ProyectoFinal\ProyectoFinal\ProyectoFinal.cpp(327,51): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
+C:\Users\Green\source\repos\ProyectoFinal\ProyectoFinal\ProyectoFinal.cpp(327,51): warning C4267: 'inicializando': conversión de 'size_t' a 'const int'; posible pérdida de datos
+  ProyectoFinal.vcxproj -> C:\Users\Green\source\repos\ProyectoFinal\x64\Debug\ProyectoFinal.exe
