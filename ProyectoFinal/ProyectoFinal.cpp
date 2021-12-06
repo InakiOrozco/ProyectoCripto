@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <sodium.h>
 #include <iostream>
+#include <fstream>
 #include <string>
 
 #include <algorithm>
 
-#define DEBUG 1
+#define DEBUG 0
 
 using namespace std;
 
@@ -122,51 +123,28 @@ ret:
     return ret;
 }
 
+
 static int
 firmar(const char* archivo_resultante, const char* archivo_original,
     const unsigned char publicKey[crypto_sign_PUBLICKEYBYTES], const unsigned char privateKey[crypto_sign_SECRETKEYBYTES])
 {
     string file_contents;
     file_contents = readFileIntoString(archivo_original);
-    const int file_length = file_contents.length();
-
-    //reservamos la memoria del mensaje firmado
-    unsigned char* signed_message = new unsigned char[crypto_sign_BYTES + file_length];
-    unsigned long long signed_message_len;
+    int file_length = file_contents.length();
 
     //convertimos a unsigned char* el string
-    unsigned char* mensaje = new unsigned char[file_length+1];
+    unsigned char* mensaje = new unsigned char[file_length+1]();
     
     std::copy(file_contents.begin(), file_contents.end(), mensaje);
     mensaje[file_contents.length()] = 0;
 
-    if (DEBUG) {
-        cout << "file_contents: " << file_contents << endl;
-        cout << endl;
-        cout << "crypto_sign_BYTES: " << crypto_sign_BYTES << endl;
-        cout << endl;
-        cout << "file_length: " << file_length << endl;
-        cout << endl;
-        cout << "crypto_sign_BYTES + file_length: " << crypto_sign_BYTES + file_length<< endl;
-        cout << endl;
-        cout << "mensaje: " << mensaje << endl;
-        cout << endl;
-        cout << "public_key: " << publicKey << endl;
-        cout << endl;
-        cout << "&signed_message_len" << &signed_message_len << endl;
-        cout << endl;
-        cout << "signed_message before: " << signed_message << endl;
-        cout << endl;
-    }
+    //reservamos la memoria del mensaje firmado
+    unsigned char *signed_message = new unsigned char[crypto_sign_BYTES + file_length];
+    unsigned long long signed_message_len;
 
     crypto_sign(signed_message, &signed_message_len, mensaje, file_length, privateKey);
 
-    if (DEBUG) {
-        cout << "signed_message after: " << signed_message << endl;
-        cout << endl;
-    }
-
-    unsigned char* unsigned_message = new unsigned char[file_length];
+    unsigned char *unsigned_message = new unsigned char[file_length];
     unsigned long long unsigned_message_len;
 
     if (crypto_sign_open(unsigned_message, &unsigned_message_len,
@@ -175,28 +153,114 @@ firmar(const char* archivo_resultante, const char* archivo_original,
         return 1;
     }
 
-    const char* result = (const char*)signed_message;
+    char* result = new char[crypto_sign_BYTES + file_length];
 
-    if (!DEBUG) {
-        FILE* signedFile;
-        signedFile = fopen(archivo_resultante, "w");
-        if (signedFile != NULL)
-        {
-            fputs(result, signedFile);
-            fclose(signedFile);
-        }
-        else {
-            return 1;
-        }
+    for (unsigned int i= 0; i < crypto_sign_BYTES + file_length; i++) {
+        result[i] = signed_message[i];
+    }
+
+    if (DEBUG) {
+        cout << "file_contents: " << file_contents << endl;
+        cout << endl;
+        cout << "crypto_sign_BYTES: " << crypto_sign_BYTES << endl;
+        cout << endl;
+        cout << "file_length: " << file_length << endl;
+        cout << endl;
+        cout << "crypto_sign_BYTES + file_length: " << crypto_sign_BYTES + file_length << endl;
+        cout << endl;
+        for (int i = 0; i < file_length; i++) cout << mensaje[i]; cout << endl;
+        cout << "mensaje length: " << strlen((char*)mensaje) << endl;
+        cout << endl;
+        cout << "unsigned_Message length: " << strlen((char*)unsigned_message) << endl;
+        cout << endl;
+        for (int i = 0; i < crypto_sign_BYTES + file_length; i++) cout << signed_message[i]; cout << endl;
+        cout << "signed_message length: " << strlen((char*)signed_message) << endl;
+        cout << endl;
+        cout << "result length: " << strlen((char*)result) << endl;
+        cout << endl;
+    }
+
+
+    ofstream ofs;
+    ofs.open(archivo_resultante, ios::app);
+    ofs.write((char*)result, crypto_sign_BYTES + file_length);
+    ofs.close();
+
+    /*
+    FILE* signedFile;
+    signedFile = fopen(archivo_resultante, "w");
+    if (signedFile != NULL)
+    {
+        for (unsigned int i = 0; i < crypto_sign_BYTES + file_length; i++) fputs(result[i], signedFile);
+        fclose(signedFile);
+    }
+    else {
+        return 1;
+    }*/
+
+    //borramos las variables que reservamos
+    delete[] signed_message;
+    delete[] unsigned_message;
+    delete[] mensaje;
+    delete[] result;
+
+    return 0;
+}
+
+/*
+static int
+firmar(const char* archivo_resultante, const char* archivo_original,
+    const unsigned char publicKey[crypto_sign_PUBLICKEYBYTES], const unsigned char privateKey[crypto_sign_SECRETKEYBYTES])
+{
+
+    string file_contents;
+    file_contents = readFileIntoString(archivo_original);
+    int file_length = file_contents.length();
+
+    //convertimos a unsigned char* el string
+    unsigned char* mensaje = new unsigned char[file_length + 1]();
+
+    std::copy(file_contents.begin(), file_contents.end(), mensaje);
+    mensaje[file_contents.length()] = 0;
+
+    unsigned char sig[crypto_sign_BYTES];
+    if (DEBUG) {
+        cout << "crypto_sign_BYTES: " << sig << endl;
+        cout << endl;
+        cout << "firma length: " << strlen((char*)sig) << endl;
+        cout << endl;
+    }
+
+    crypto_sign_detached(sig, NULL, mensaje, file_length, privateKey);
+
+    if (crypto_sign_verify_detached(sig, mensaje, file_length, publicKey) != 0) {
+        //incorrecta
+        return 1;
+    }
+
+    if (DEBUG) {
+        cout << "firma: " << sig << endl;
+        cout << endl;
+        cout << "firma length: " << strlen((char*)sig) << endl;
+        cout << endl;
+    }
+
+    FILE* signedFile;
+    signedFile = fopen(archivo_resultante, "w");
+    if (signedFile != NULL)
+    {
+        fputs((char*)sig, signedFile);
+        fclose(signedFile);
+    }
+    else {
+        return 1;
     }
 
     //borramos las variables que reservamos
     delete[] mensaje;
-    delete[] signed_message;
-    delete[] unsigned_message;
 
     return 0;
-}
+}*/
 
 static int
 verificar(const char* archivo, const unsigned char publicKey[crypto_sign_PUBLICKEYBYTES])
@@ -211,11 +275,11 @@ verificar(const char* archivo, const unsigned char publicKey[crypto_sign_PUBLICK
     }
 
     string signature = file_contents.substr(0, crypto_sign_BYTES);
-    file_contents = file_contents.substr(crypto_sign_BYTES);
+    file_contents = file_contents.substr(crypto_sign_BYTES, file_length);
 
     //ahora que separamos el mensaje del archivo reajustamos el largo
     file_length = file_contents.length();
-    
+
     //convertimos a unsigned char* el string
     unsigned char* mensaje = new unsigned char[file_length + 1];
 
@@ -228,17 +292,19 @@ verificar(const char* archivo, const unsigned char publicKey[crypto_sign_PUBLICK
     std::copy(signature.begin(), signature.end(), sig);
     sig[signature.length()] = 0;
 
-    cout << sig << endl;
-    cout << endl;
-    cout << mensaje << endl;
-    cout << endl;
-    cout << crypto_sign_BYTES;
-    cout << endl;
-    cout << file_length << endl;
-    cout << endl;
-    cout << file_length + crypto_sign_BYTES;
-    cout << endl;
-    cout << publicKey << endl;
+
+    if (DEBUG) {
+        cout << "file_contents: " << file_contents << endl;
+        cout << endl;
+        cout << "crypto_sign_BYTES: " << crypto_sign_BYTES << endl;
+        cout << endl;
+        cout << "file_length: " << file_length << endl;
+        cout << endl;
+        cout << "crypto_sign_BYTES + file_length: " << crypto_sign_BYTES + file_length << endl;
+        cout << endl;
+        cout << "mensaje: " << mensaje << endl;
+        cout << endl;
+    }
 
     if (crypto_sign_verify_detached(sig, mensaje, file_length, publicKey) != 0) {
         cout << "La firma no es válida";
@@ -296,11 +362,10 @@ escribirKeys(const char* archivo_public, const char* archivo_private, const unsi
     return 0;
 }
 
-int
+static int
 extraerSK(const char* archivo, unsigned char key[crypto_secretstream_xchacha20poly1305_KEYBYTES]){
     string file_contents;
     file_contents = readFileIntoString(archivo);
-    const int file_length = file_contents.length();
 
     std::copy(file_contents.begin(), file_contents.end(), key);
     key[file_contents.length()] = 0;
@@ -308,11 +373,10 @@ extraerSK(const char* archivo, unsigned char key[crypto_secretstream_xchacha20po
     return 0;
 }
 
-int
+static int
 extraerPublicKey(const char* archivo, unsigned char publicKey[crypto_sign_PUBLICKEYBYTES]) {
     string file_contents;
     file_contents = readFileIntoString(archivo);
-    const int file_length = file_contents.length();
 
     std::copy(file_contents.begin(), file_contents.end(), publicKey);
     publicKey[file_contents.length()] = 0;
@@ -320,14 +384,10 @@ extraerPublicKey(const char* archivo, unsigned char publicKey[crypto_sign_PUBLIC
     return 0;
 }
 
-int
+static int
 extraerPrivateKey(const char* archivo, unsigned char privateKey[crypto_sign_SECRETKEYBYTES]) {
     string file_contents;
     file_contents = readFileIntoString(archivo);
-    const int file_length = file_contents.length();
-
-    //convertimos a unsigned char* el string
-    unsigned char* llave = new unsigned char[file_length + 1];
 
     std::copy(file_contents.begin(), file_contents.end(), privateKey);
     privateKey[file_contents.length()] = 0;
@@ -373,6 +433,8 @@ main(void)
     string a, b, c;
     char origin[300], destiny[300];
     int choice, eleccion;
+
+
     do
     {
         showChoices();
@@ -490,7 +552,7 @@ main(void)
             cout << "Escriba la dirección del archivo a verificar: ";
             cin >> a;
             strcpy(origin, a.c_str());
-            if (verificar(origin, publicKey) != 0){
+            if (verificar(origin, publicKey) != 0) {
                 return 1;
             }
             break;
